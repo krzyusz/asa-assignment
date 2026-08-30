@@ -28,7 +28,9 @@ COPY requirements.txt .
 
 RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
-    && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+    && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt \
+    # Build tooling is not needed at runtime and carries its own CVEs — drop it.
+    && /opt/venv/bin/pip uninstall -y pip setuptools wheel
 
 # ---------------------------------------------------------------------------
 # Stage 2 — runtime: minimal image with just the venv and application source

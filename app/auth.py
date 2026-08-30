@@ -35,7 +35,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 def decode_token(token: str) -> dict:
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM, "none"])
+        # Finding #2: only the configured signing algorithm is accepted. Allowing
+        # "none" (or a client-chosen alg) lets anyone forge tokens.
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
     except JWTError as exc:
         logger.debug("JWT decode error: %s", exc)

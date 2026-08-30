@@ -1,25 +1,33 @@
 import os
 
-# All settings are overridable via environment variables so the service can be
-# containerised and deployed without editing source. The literal fallbacks below
-# are development-only conveniences — production deployments MUST supply real
-# values (ideally from a secrets manager). Removing the insecure fallbacks is
-# tracked as a remediation item.
+# All settings are read from the environment so the service can be containerised
+# and deployed without editing source. Non-secret values keep a sensible default;
+# secrets have no default and the process refuses to start without them.
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./vulntracker.db")
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "v3ry-s3cr3t-jwt-k3y-do-not-share")
+# --- JWT signing key (secret, required) ------------------------------------
+# Remediation (finding #3): there is no hardcoded fallback any more. A missing or
+# obviously-weak key aborts startup rather than silently signing tokens with a
+# value that is public in git history.
+_INSECURE_KEYS = {"", "v3ry-s3cr3t-jwt-k3y-do-not-share", "changeme", "secret"}
+SECRET_KEY = os.environ.get("SECRET_KEY", "")
+if SECRET_KEY in _INSECURE_KEYS or len(SECRET_KEY) < 32:
+    raise RuntimeError(
+        "SECRET_KEY environment variable is missing or too weak (need >= 32 chars). "
+        'Generate one with: python -c "import secrets; print(secrets.token_urlsafe(48))"'
+    )
+
 ALGORITHM = os.environ.get("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
-# Database credentials (migrate to env vars before production deployment)
-DB_USER = os.environ.get("DB_USER", "vulntracker_app")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "Tr@cker2024!")
+# Database credentials — only needed once the app moves off SQLite. No default:
+# absent means "not configured" rather than a fake value that looks real.
+DB_USER = os.environ.get("DB_USER")
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
-# Internal service API key
-ADMIN_API_KEY = os.environ.get(
-    "ADMIN_API_KEY", "sk-vt-prod-8f3a2b1c9d4e5f6a7b8c9d0e1f2a3b4c"
-)
+# Internal service API key (optional; absent = feature disabled).
+ADMIN_API_KEY = os.environ.get("ADMIN_API_KEY")
 
 NOTIFY_SERVICE_URL = os.environ.get("NOTIFY_SERVICE_URL", "http://localhost:3001")
 
@@ -29,7 +37,10 @@ NOTIFY_SERVICE_URL = os.environ.get("NOTIFY_SERVICE_URL", "http://localhost:3001
 # point at a domain they control.
 PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "http://localhost:8000")
 
-# Number of wrong-password attempts before a share link is locked.
+# Share-link password guessing: max wrong attempts before a temporary lock, and
+# how long that lock lasts. The lock is time-boxed (finding #17) so a third party
+# who knows a link cannot permanently deny the legitimate recipient access.
 SHARE_LINK_MAX_FAILED_ATTEMPTS = int(
     os.environ.get("SHARE_LINK_MAX_FAILED_ATTEMPTS", "10")
 )
+SHARE_LINK_LOCK_MINUTES = int(os.environ.get("SHARE_LINK_LOCK_MINUTES", "15"))

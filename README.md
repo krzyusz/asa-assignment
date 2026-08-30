@@ -151,10 +151,10 @@ Tear down: `docker compose down -v`.
 
 - **Prototype scope**: the SQLite DB and the notification service's in-memory
   webhook registry are prototype stores, not production persistence.
-- **Known residual issues (tracked for Task 2/3, not fixed here)**: `app/config.py`
-  and `notify/src/config.js` still carry hardcoded fallback secrets in source;
-  the containerisation only makes them overridable. Removing the insecure
-  fallbacks / failing closed on a missing `SECRET_KEY` is part of remediation.
+- **Secrets**: `app/config.py` now fails closed — the process refuses to start
+  without a strong `SECRET_KEY` (Task 3). `notify/src/config.js` still carries a
+  hardcoded `SERVICE_KEY`; `notify/` is out of scope for code changes (see
+  `docs/remediation-plan.md`).
 - The Node test suite requires Node 20+ (per CI); on older local Node it may fail
   to connect in its `before` hook.
 
@@ -234,8 +234,10 @@ requests/limits, and `/health` probes.
 
 ## Security scans
 
-Raw JSON output for every scan is committed under [`reports/`](reports/).
-Interpretation and prioritisation are in [`docs/findings.md`](docs/findings.md).
+Raw JSON output for every scan is committed under [`reports/`](reports/), with
+`reports/after-fixes.*` from a re-scan after the Task 3 remediation.
+Interpretation and prioritisation are in [`docs/findings.md`](docs/findings.md);
+deferred items in [`docs/remediation-plan.md`](docs/remediation-plan.md).
 
 Tools used (versions this run): Semgrep 1.175.0, Trivy 0.74.0, Prowler 5.40.0,
 Checkov 3.3.16. All commands run from the repo root.

@@ -56,8 +56,10 @@ class ShareLink(Base):
         entropy and is therefore not brute-forceable.
       * The optional password is stored as a bcrypt hash (same context as user
         passwords) and checked in constant time.
-      * ``failed_attempts`` backs a simple per-link lockout against password
-        guessing.
+      * ``failed_attempts`` + ``locked_until`` back a *time-boxed* lockout
+        against password guessing. It is time-boxed rather than permanent
+        (finding #17) so a third party who knows the link cannot lock the
+        legitimate recipient out for good.
     """
 
     __tablename__ = "share_links"
@@ -69,6 +71,7 @@ class ShareLink(Base):
     )
     password_hash = Column(String(200), nullable=True)
     failed_attempts = Column(Integer, default=0, nullable=False)
+    locked_until = Column(DateTime, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     expires_at = Column(DateTime, default=_share_link_expiry, nullable=False)
@@ -82,3 +85,18 @@ class ShareLink(Base):
     @property
     def is_password_protected(self) -> bool:
         return self.password_hash is not None
+
+    @property
+    def is_locked(self) -> bool:
+        return self.locked_until is not None and datetime.utcnow() < self.locked_until
+
+    def register_failed_attempt(self, max_attempts: int, lock_minutes: int) -> None:
+        """Count a wrong password; start a temporary lock once the limit is hit."""
+        self.failed_attempts += 1
+        if self.failed_attempts >= max_attempts:
+            self.locked_until = datetime.utcnow() + timedelta(minutes=lock_minutes)
+            self.failed_attempts = 0
+
+    def reset_lock(self) -> None:
+        self.failed_attempts = 0
+        self.locked_until = None

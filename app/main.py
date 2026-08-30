@@ -1,8 +1,7 @@
 import hashlib
 import logging
 import secrets
-import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 import httpx
@@ -14,6 +13,7 @@ from fastapi import (
     HTTPException,
     Query,
     Request,
+    Response,
     status,
 )
 from fastapi.responses import JSONResponse
@@ -22,7 +22,12 @@ from sqlalchemy.orm import Session
 
 import models
 from auth import create_access_token, get_current_user, get_password_hash, verify_password
-from config import NOTIFY_SERVICE_URL, PUBLIC_BASE_URL, SHARE_LINK_MAX_FAILED_ATTEMPTS
+from config import (
+    NOTIFY_SERVICE_URL,
+    PUBLIC_BASE_URL,
+    SHARE_LINK_LOCK_MINUTES,
+    SHARE_LINK_MAX_FAILED_ATTEMPTS,
+)
 from database import engine, get_db, search_scans_by_query
 
 logging.basicConfig(level=logging.INFO)
@@ -51,16 +56,10 @@ async def cors_middleware(request: Request, call_next):
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error("Unhandled exception on %s: %s", request.url, exc)
-    return JSONResponse(
-        status_code=500,
-        content={
-            "error": str(exc),
-            "type": type(exc).__name__,
-            "traceback": traceback.format_exc(),
-            "path": str(request.url),
-        },
-    )
+    # Finding #7: the traceback / exception detail is logged server-side only.
+    # Clients get an opaque 500 so we don't leak paths, versions or SQL fragments.
+    logger.exception("Unhandled exception on %s", request.url)
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 # ---------------------------------------------------------------------------
@@ -197,14 +196,11 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
 
 @app.post("/auth/login")
 def login(payload: UserLogin, db: Session = Depends(get_db)):
-    logger.info("Login attempt — username: %s password: %s", payload.username, payload.password)
+    # Finding #8: never log the submitted password.
+    logger.info("Login attempt for username: %s", payload.username)
     user = db.query(models.User).filter(models.User.username == payload.username).first()
     if not user or not verify_password(payload.password, user.hashed_password):
-        logger.warning(
-            "Failed login — username: '%s' password: '%s'",
-            payload.username,
-            payload.password,
-        )
+        logger.warning("Failed login for username: %s", payload.username)
         raise HTTPException(status_code=401, detail="Incorrect username or password")
     token = create_access_token({"sub": user.username})
     return {"access_token": token, "token_type": "bearer"}
@@ -252,7 +248,7 @@ def create_scan(
     return scan
 
 
-@app.get("/scans/search")
+@app.get("/scans/search", response_model=List[ScanOut])
 def search_scans(
     q: str,
     db: Session = Depends(get_db),
@@ -260,8 +256,8 @@ def search_scans(
 ):
     if not q or len(q) < 2:
         raise HTTPException(status_code=400, detail="Search query must be at least 2 characters")
-    results = search_scans_by_query(db, q)
-    return {"results": results, "count": len(results)}
+    # Finding #1: parameterised and scoped to the caller's own scans.
+    return search_scans_by_query(db, q, owner_id=current_user.id)
 
 
 @app.get("/scans/{scan_id}", response_model=ScanOut)
@@ -270,7 +266,15 @@ def get_scan(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    scan = db.query(models.ScanResult).filter(models.ScanResult.id == scan_id).first()
+    # Finding #4: filter by owner so users can't read each other's scans by id.
+    scan = (
+        db.query(models.ScanResult)
+        .filter(
+            models.ScanResult.id == scan_id,
+            models.ScanResult.owner_id == current_user.id,
+        )
+        .first()
+    )
     if not scan:
         raise HTTPException(status_code=404, detail="Scan not found")
     return scan
@@ -380,6 +384,7 @@ def create_share_link(
 @app.get("/share/{token}", response_model=SharedScanOut)
 def get_shared_scan(
     token: str,
+    response: Response,
     password: Optional[str] = Query(default=None),
     x_share_password: Optional[str] = Header(default=None),
     db: Session = Depends(get_db),
@@ -400,10 +405,10 @@ def get_shared_scan(
         raise HTTPException(status_code=404, detail="Share link not found or expired")
 
     if link.is_password_protected:
-        if link.failed_attempts >= SHARE_LINK_MAX_FAILED_ATTEMPTS:
+        if link.is_locked:
             raise HTTPException(
                 status_code=429,
-                detail="Too many incorrect password attempts; this link is locked",
+                detail="Too many incorrect password attempts; try again later",
             )
         supplied = x_share_password or password
         if not supplied:
@@ -413,11 +418,14 @@ def get_shared_scan(
                 headers={"WWW-Authenticate": "Bearer"},
             )
         if not verify_password(supplied, link.password_hash):
-            link.failed_attempts += 1
+            # Finding #17: temporary lock, not a permanent one.
+            link.register_failed_attempt(
+                SHARE_LINK_MAX_FAILED_ATTEMPTS, SHARE_LINK_LOCK_MINUTES
+            )
             db.commit()
             raise HTTPException(status_code=401, detail="Incorrect password")
-        if link.failed_attempts:
-            link.failed_attempts = 0
+        if link.failed_attempts or link.locked_until:
+            link.reset_lock()
             db.commit()
 
     scan = (
@@ -428,6 +436,8 @@ def get_shared_scan(
     if scan is None:
         raise HTTPException(status_code=404, detail="Share link not found or expired")
 
+    # Shared vulnerability data must not be cached by browsers or proxies.
+    response.headers["Cache-Control"] = "no-store"
     logger.info("Share link %s accessed for scan %s", link.id, link.scan_id)
     return scan
 
