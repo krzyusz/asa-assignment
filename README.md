@@ -77,6 +77,89 @@ npm test
 
 ---
 
+## Run with Docker
+
+Two images are provided:
+
+| Image | Dockerfile | Base (pinned by tag + digest) | Runs as |
+| ----- | ---------- | ----------------------------- | ------- |
+| `vulntracker-api` (mandatory) | `./Dockerfile` | `python:3.11-slim-bookworm` | `appuser` (uid 10001) |
+| `vulntracker-notify` | `./notify/Dockerfile` | `node:20-bookworm-slim` | `node` (uid 1000) |
+
+Both are multi-stage, run as a non-root user, ship a `HEALTHCHECK`, use `tini` as
+init, and contain **no secrets** — all configuration is read from environment
+variables (`app/config.py` now sources everything from `os.environ`, with
+development-only fallbacks). The build context is the repo root for both.
+
+### Just the API
+
+```bash
+docker build -t vulntracker-api .
+
+docker run --rm -p 8000:8000 \
+  -e SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')" \
+  vulntracker-api
+```
+
+`SECRET_KEY` is the only required variable. The SQLite database is written to
+`/data` (declared as a `VOLUME`) so the container's root filesystem can stay
+read-only; add `-v vulntracker-data:/data` to persist it across runs.
+
+Check it:
+
+```bash
+curl -fsS localhost:8000/health          # {"status":"ok","service":"vulntracker-api"}
+docker inspect --format '{{.State.Health.Status}}' <container>   # healthy
+```
+
+### Full stack (API + notification service)
+
+Runs both services on a private bridge network so you can watch the end-to-end
+flow (create a scan → the API calls the notification service in the background).
+
+```bash
+cp .env.example .env
+#  edit .env and set SECRET_KEY  (python -c 'import secrets; print(secrets.token_urlsafe(48))')
+
+docker compose up --build
+```
+
+- Published ports are bound to `127.0.0.1` only: API on `:8000`, notify on
+  `:3001` (the latter exposed purely for hands-on exploration — delete the
+  `ports:` block to make it fully internal). Override with `API_PORT` /
+  `NOTIFY_PORT` in `.env` if those ports are taken.
+- Each service runs with a read-only root FS, `cap_drop: ALL`,
+  `no-new-privileges`, and CPU/memory limits.
+
+Walk the flow:
+
+```bash
+BASE=http://localhost:8000
+curl -s -X POST $BASE/auth/register -H 'content-type: application/json' \
+  -d '{"username":"alice","email":"a@example.com","password":"pw12345"}'
+TOKEN=$(curl -s -X POST $BASE/auth/login -H 'content-type: application/json' \
+  -d '{"username":"alice","password":"pw12345"}' | python -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')
+curl -s -X POST $BASE/scans -H "authorization: Bearer $TOKEN" -H 'content-type: application/json' \
+  -d '{"title":"Test XSS","severity":"high","affected_component":"GET /search"}'
+
+docker compose logs app | grep notify:3001   # shows the background call to the notification service
+```
+
+Tear down: `docker compose down -v`.
+
+### Notes / assumptions
+
+- **`share_url` host / prototype scope**: the SQLite DB and in-memory webhook
+  registry are prototype stores, not production persistence.
+- **Known residual issues (tracked for Task 2/3, not fixed here)**: `app/config.py`
+  and `notify/src/config.js` still carry hardcoded fallback secrets in source;
+  the containerisation only makes them overridable. Removing the insecure
+  fallbacks / failing closed on a missing `SECRET_KEY` is part of remediation.
+- The Node test suite requires Node 20+ (per CI); on older local Node it may fail
+  to connect in its `before` hook.
+
+---
+
 ## Your Tasks
 
 ### Task 1 — Extend the App _(~1–1.5 hrs)_

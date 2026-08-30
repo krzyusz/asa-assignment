@@ -1,0 +1,81 @@
+# VulnTracker — local full-stack run (FastAPI API + Node notification service).
+#
+#   cp .env.example .env      # then edit SECRET_KEY
+#   docker compose up --build
+#
+# Security posture of this file:
+#   - No secrets in-tree: SECRET_KEY is required from the environment / .env
+#   - Services talk over a private bridge network; published ports are
+#     bound to loopback only (127.0.0.1) and limited to what you need to explore
+#   - Read-only root filesystem, all Linux capabilities dropped,
+#     no-new-privileges, non-root users (from the images), resource limits
+
+services:
+  notify:
+    build:
+      context: .
+      dockerfile: notify/Dockerfile
+    image: vulntracker-notify:local
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+    # Exposed for hands-on exploration only; remove to make it fully internal.
+    ports:
+      - "127.0.0.1:${NOTIFY_PORT:-3001}:3001"
+    networks:
+      - vulntracker
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 128M
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vulntracker-api:local
+    environment:
+      # Required — compose fails fast if unset. Put it in .env (gitignored).
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env (see .env.example)}
+      NOTIFY_SERVICE_URL: http://notify:3001
+      DATABASE_URL: sqlite:////data/vulntracker.db
+      ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      notify:
+        condition: service_healthy
+    networks:
+      - vulntracker
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      # SQLite lives here so the root FS can stay read-only. Prototype store only.
+      - vulntracker-data:/data
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 256M
+
+networks:
+  vulntracker:
+    driver: bridge
+
+volumes:
+  vulntracker-data:

@@ -1,0 +1,40 @@
+# Keep the build context small and avoid leaking local state / secrets.
+.git
+.github
+.gitignore
+
+# Python
+.venv
+venv
+env
+__pycache__
+*.py[cod]
+*.egg-info
+.pytest_cache
+.coverage
+htmlcov
+
+# Node
+notify/node_modules
+node_modules
+npm-debug.log*
+
+# Local data / logs / secrets
+*.db
+*.sqlite3
+*.log
+.env
+.env.*
+!.env.example
+
+# Assignment artifacts not needed in the image
+reports
+docs
+tests
+terraform
+helm
+
+# Editor / tooling
+.claude
+.vscode
+.idea
