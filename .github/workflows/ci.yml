@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: ["**"]
 
+permissions:
+  contents: read
+
+env:
+  TRIVY_VERSION: "v0.74.0"
+  SEMGREP_VERSION: "1.175.0"
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -45,23 +52,108 @@ jobs:
         run: npm test
         working-directory: notify
 
-  # TODO (candidates): Add the following security scanning jobs.
-  # Tool selection is your decision — document your choices in findings.md.
-  #
-  # sast:
-  #   Static Application Security Testing against app/ source code
-  #   Upload JSON report as a build artifact named sast.<tool>.json
-  #   Build should fail on critical findings
-  #
-  # sca:
-  #   Dependency / Software Composition Analysis against requirements.txt
-  #   Upload JSON report as a build artifact named sca.<tool>.json
-  #   Build should fail on critical or high severity CVEs
-  #
-  # container-scan:
-  #   Build the Docker image, then scan it for vulnerabilities and misconfigurations
-  #   Upload JSON report as a build artifact named container.<tool>.json
-  #
-  # iac-scan:
-  #   Scan the Helm chart or Terraform configuration for security misconfigurations
-  #   Upload JSON report as a build artifact named iac.<tool>.json
+  # ---------------------------------------------------------------------------
+  # Security scanning. Each job writes the raw JSON as a build artifact and,
+  # where a threshold is defined, fails the build. Tool rationale: docs/steps-done.md
+  # ("Step 4"). Committed reference reports (incl. post-remediation re-scan) live
+  # in reports/.
+  # ---------------------------------------------------------------------------
+
+  sast:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "semgrep==${SEMGREP_VERSION}"
+      - name: Scan
+        run: |
+          mkdir -p reports
+          semgrep scan \
+            --config p/default --config p/python --config p/javascript \
+            --config p/security-audit --config p/owasp-top-ten --config p/secrets \
+            --config p/jwt --config p/command-injection --config p/sql-injection \
+            --config p/insecure-transport \
+            --metrics off --json --output reports/sast.semgrep.json \
+            app/ notify/src/ tests/ || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sast.semgrep.json
+          path: reports/sast.semgrep.json
+      - name: Fail on critical (ERROR-severity) findings
+        run: |
+          n=$(jq '[.results[] | select(.extra.severity == "ERROR")] | length' reports/sast.semgrep.json)
+          echo "ERROR-severity findings: $n"
+          [ "$n" -eq 0 ] || { echo "::error::Semgrep found $n ERROR-severity finding(s)"; exit 1; }
+
+  sca:
+    name: SCA (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Trivy
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b "$HOME/.local/bin" "${TRIVY_VERSION}"
+      - name: Scan (report)
+        run: |
+          mkdir -p reports
+          "$HOME/.local/bin/trivy" fs --scanners vuln --format json \
+            --output reports/sca.trivy.json .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sca.trivy.json
+          path: reports/sca.trivy.json
+      - name: Fail on CRITICAL / HIGH in first-party dependencies
+        run: |
+          "$HOME/.local/bin/trivy" fs --scanners vuln --skip-dirs notify \
+            --severity CRITICAL,HIGH --exit-code 1 --quiet .
+
+  container-scan:
+    name: Container image (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Trivy
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b "$HOME/.local/bin" "${TRIVY_VERSION}"
+      - name: Build image
+        run: docker build -t vulntracker-api:ci .
+      - name: Scan (report)
+        run: |
+          mkdir -p reports
+          "$HOME/.local/bin/trivy" image --scanners vuln,secret --format json \
+            --output reports/container.trivy.json vulntracker-api:ci
+      - uses: actions/upload-artifact@v4
+        with:
+          name: container.trivy.json
+          path: reports/container.trivy.json
+      - name: Fail on fixable CRITICAL vulnerabilities
+        run: |
+          "$HOME/.local/bin/trivy" image --scanners vuln --ignore-unfixed \
+            --severity CRITICAL --exit-code 1 --quiet vulntracker-api:ci
+
+  iac-scan:
+    name: IaC (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Trivy
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b "$HOME/.local/bin" "${TRIVY_VERSION}"
+      - name: Scan (report — Helm chart + Dockerfiles)
+        run: |
+          mkdir -p reports
+          "$HOME/.local/bin/trivy" config --format json \
+            --output reports/iac.trivy.json .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: iac.trivy.json
+          path: reports/iac.trivy.json
+      - name: Fail on CRITICAL misconfigurations
+        run: |
+          "$HOME/.local/bin/trivy" config --severity CRITICAL --exit-code 1 --quiet .

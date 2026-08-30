@@ -95,6 +95,14 @@ JWT `none` + hardcoded `SECRET_KEY`) and ~5 P1 (IDOR, stack-trace disclosure,
 password logging, unauthenticated notify + SSRF). Most raw scan volume is
 non-actionable (unfixable Debian base CVEs, transitive DoS).
 
+### Note on CI
+
+The tasks do not require building a CI pipeline. `.github/workflows/ci.yml`
+carries a **commented, optional** `TODO (candidates)` block for SAST/SCA/
+container/IaC jobs; the only hard requirement is that the existing test workflow
+stays green. Those jobs were added in Step 7 below (time permitting) - the scans
+also run locally, commands in the README's "Security scans" section.
+
 ---
 
 ## Step 5 - Remediation (Task 3)
@@ -145,6 +153,34 @@ SAST 7→3, SCA `requirements.txt` 1 CRITICAL+11 HIGH → 0/0, container 6→5 C
 
 - Added `docs/executive-summary.md` - CISO-facing, business-risk framing.
 
+---
+
+## Step 7 - Security scans in CI
+
+Added the four scanning jobs to `.github/workflows/ci.yml` (the brief's optional
+TODO):
+
+| Job | Tool | Artifact | Gate |
+| --- | ---- | -------- | ---- |
+| `sast` | Semgrep | `sast.semgrep.json` | fail on ERROR-severity (≈ critical) findings |
+| `sca` | Trivy `fs` | `sca.trivy.json` | fail on CRITICAL/HIGH in first-party deps (`--skip-dirs notify`) |
+| `container-scan` | Trivy `image` (builds the image) | `container.trivy.json` | fail on **fixable** CRITICAL (`--ignore-unfixed`) |
+| `iac-scan` | Trivy `config` | `iac.trivy.json` | fail on CRITICAL misconfigurations |
+
+**Considerations:**
+- Gates are scoped so they pass on the current (post-remediation) code but would
+  catch a regression. `notify/` dependency CVEs and unfixable Debian base CVEs
+  are excluded from the gates on purpose (documented deferrals, not this repo's
+  code) - they still appear in the uploaded reports.
+- The container gate uses `--ignore-unfixed`: failing on CVEs with no available
+  fix would block every build for reasons no code change can address.
+- Tools are installed pinned (`TRIVY_VERSION`, `SEMGREP_VERSION`) rather than via
+  a marketplace action, to avoid an unpinned third-party action in the pipeline.
+- `actionlint` clean; every gate command was dry-run locally with the same tool
+  versions. The workflow itself could not be executed end-to-end from here.
+- Making these **required** status checks is a branch-protection setting on the
+  repo, not part of the workflow file.
+
 ## Process note
 
 Each step above was delivered as a single commit covering several distinct
@@ -155,3 +191,41 @@ a second engineer should review and merge on its own. Splitting them keeps the
 blast radius of each change clear and stops a regression in one from holding up
 the rest. In a real engagement these would be separate branches/PRs, ideally
 spread across people.
+
+---
+
+## Final considerations - what a production-grade programme adds
+
+Concepts, out of scope for this exercise but what i thought when working with that repo.
+
+### Secure the build (CI/CD)
+
+- no long-lived static secrets in the CI system; secrets pulled from a manager at
+  run time, never persisted in logs/artifacts
+- Isolated build runners; pinned runner images
+- Supply-chain integrity: pinned and verified dependencies (lockfiles + checksum
+  / signature verification)
+- SLSA-style provenance and attestation
+- SBOM generated at build time, stored, and re-scanned continuously
+- Scanning as blocking gates in the pipeline: SAST, SCA, secret detection, IaC,
+  container image
+- Branch protection
+
+### Secure the deployment and runtime
+
+- Policy-as-code admission control on the cluster
+- Verify image signatures and provenance at admission
+- Runtime security - syscall, process monitoring
+- Continuous posture scanning
+
+### Everything else
+
+- DAST / API fuzzing against a running environment
+- Vulnerability management with ownership, SLAs by severity, and automated
+  dependency-update PRs
+- Centralised, tamper-evident audit logging
+- Identity: SSO, periodic access reviews, and
+  break-glass procedures
+- Golden base images, shared hardened chart/module libraries,
+  and secure-by-default templates - so teams get the secure option for free
+- Compliance mapping
