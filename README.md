@@ -201,6 +201,37 @@ this prototype).
 
 ---
 
+## Deploy to Kubernetes
+
+A Helm chart for the API lives in [`helm/vulntracker-api/`](helm/vulntracker-api/)
+(see its README for full detail).
+
+```bash
+helm install vulntracker ./helm/vulntracker-api \
+  --namespace vulntracker --create-namespace \
+  --set image.repository=<registry>/vulntracker-api --set image.digest=sha256:... \
+  --set config.PUBLIC_BASE_URL=https://vulntracker.example.com \
+  --set ingress.enabled=true --set ingress.host=vulntracker.example.com
+```
+
+**Secrets** are never in the chart. `secrets.provider` selects how the
+`SECRET_KEY` Secret is populated:
+
+- `eso` (default) — renders an `ExternalSecret`; External Secrets Operator syncs
+  it from your `SecretStore`.
+- `avp` — renders a `Secret` of `<path:...>` placeholders for the Argo CD Vault
+  Plugin to resolve.
+
+The `Deployment` is identical either way. Additional secrets (e.g. a Postgres
+URL) are one line in `secrets.items`.
+
+**Also included:** non-root / read-only-rootfs / dropped-capabilities security
+contexts, a deny-by-default `NetworkPolicy` (ingress only from the ingress
+controller, egress only to DNS + the notification service), resource
+requests/limits, and `/health` probes.
+
+---
+
 ## Your Tasks
 
 ### Task 1 — Extend the App _(~1–1.5 hrs)_

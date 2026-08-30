@@ -1,0 +1,24 @@
+VulnTracker API deployed as {{ include "vulntracker-api.fullname" . }} (namespace {{ .Release.Namespace }}).
+
+Image:  {{ include "vulntracker-api.image" . }}
+Secrets: provider "{{ .Values.secrets.provider }}" -> Secret "{{ include "vulntracker-api.secretName" . }}"
+{{- if eq .Values.secrets.provider "eso" }}
+  ExternalSecret reads from {{ .Values.secrets.eso.secretStoreRef.kind }}/{{ .Values.secrets.eso.secretStoreRef.name }}
+  remoteKey: {{ .Values.secrets.eso.remoteKey }}
+  Required keys: {{ range .Values.secrets.items }}{{ .key | default .envVar }} {{ end }}
+{{- else if eq .Values.secrets.provider "avp" }}
+  Argo CD Vault Plugin resolves <path:{{ .Values.secrets.avp.path }}#KEY>
+  Required keys: {{ range .Values.secrets.items }}{{ .key | default .envVar }} {{ end }}
+{{- end }}
+
+Reach it:
+{{- if .Values.ingress.enabled }}
+  https://{{ .Values.ingress.host }}{{ .Values.ingress.path }}
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "vulntracker-api.fullname" . }} 8000:{{ .Values.service.port }}
+  curl localhost:8000/health
+{{- end }}
+{{ if gt (int .Values.replicaCount) 1 }}
+WARNING: replicaCount > 1 with the default SQLite DATABASE_URL will give each pod
+its own database. Point config.DATABASE_URL at a shared database first.
+{{- end }}

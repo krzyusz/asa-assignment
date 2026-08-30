@@ -1,0 +1,11 @@
+apiVersion: v2
+name: vulntracker-api
+description: VulnTracker vulnerability-tracking REST API (FastAPI)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+kubeVersion: ">=1.25.0-0"
+sources:
+  - https://github.com/krzyusz/asa-assignment
+maintainers:
+  - name: VulnTracker team

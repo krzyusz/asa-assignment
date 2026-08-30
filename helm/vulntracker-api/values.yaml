@@ -1,0 +1,178 @@
+# ---------------------------------------------------------------------------
+# VulnTracker API — Helm values
+# ---------------------------------------------------------------------------
+
+replicaCount: 1  # SQLite prototype store — see `config.DATABASE_URL` note below.
+
+image:
+  repository: ghcr.io/cloudtriquetra/vulntracker-api
+  # Prefer an immutable digest; `tag` is the fallback (defaults to .Chart.appVersion).
+  tag: ""
+  digest: ""  # e.g. sha256:abc123...
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# ---------------------------------------------------------------------------
+# Non-secret configuration -> rendered into a ConfigMap and injected as env.
+# ---------------------------------------------------------------------------
+config:
+  PUBLIC_BASE_URL: "https://vulntracker.example.com"
+  NOTIFY_SERVICE_URL: "http://vulntracker-notify:3001"
+  ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+  # Prototype only. SQLite on an ephemeral/single-writer volume does not support
+  # more than one replica. For a real deployment point this at managed Postgres
+  # and add its credentials to `secrets.items` below.
+  DATABASE_URL: "sqlite:////data/vulntracker.db"
+
+# ---------------------------------------------------------------------------
+# Secret management
+#
+# The application only consumes a Kubernetes Secret (default name
+# "<release>-secrets"); how that Secret is populated depends on `provider`:
+#
+#   eso  — an ExternalSecret is created; External Secrets Operator syncs the
+#          values from your SecretStore into the Secret.
+#   avp  — a Secret manifest with <path:...> placeholders is created; the
+#          Argo CD Vault Plugin resolves them at manifest-generation time.
+#
+# In both cases `items[].envVar` is the container env var name.
+# ---------------------------------------------------------------------------
+secrets:
+  provider: eso  # "eso" | "avp"
+  secretName: ""  # defaults to "<release>-secrets"
+
+  # Each item -> one env var on the container, sourced from the backend.
+  #   key        key/field name in the backend             (defaults to envVar)
+  #   remoteKey  eso only: override the path for this item  (defaults to eso.remoteKey)
+  #   path       avp only: full <path:...> ref for this item (overrides avp.path + key)
+  items:
+    - envVar: SECRET_KEY
+      key: SECRET_KEY
+    # Example — Postgres instead of SQLite:
+    # - envVar: DATABASE_URL
+    #   key: DATABASE_URL
+
+  eso:
+    refreshInterval: 1h
+    # A (Cluster)SecretStore you manage outside this chart.
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    # Logical path of the secret in the backend (ESO adds the KV-v2 "data/" segment).
+    remoteKey: secret/vulntracker/api
+
+  avp:
+    # KV-v2 path INCLUDING the "data/" segment, per AVP's inline path syntax.
+    path: secret/data/vulntracker/api
+
+# ---------------------------------------------------------------------------
+# Service / Ingress
+# ---------------------------------------------------------------------------
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  host: vulntracker.example.com
+  path: /
+  pathType: Prefix
+  tls:
+    enabled: true
+    secretName: vulntracker-api-tls
+
+# ---------------------------------------------------------------------------
+# NetworkPolicy — deny-by-default; only what the API actually needs.
+#   ingress: from the ingress controller, to :8000
+#   egress:  DNS, and the notification service
+# ---------------------------------------------------------------------------
+networkPolicy:
+  enabled: true
+  # Namespaces/pods allowed to reach the API. Default: the ingress-nginx namespace.
+  ingressFrom:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+  # Extra egress rules (the notification service). Adjust selector/namespace to match.
+  egressTo:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: vulntracker-notify
+      ports:
+        - port: 3001
+          protocol: TCP
+  # kube-dns / CoreDNS location.
+  dnsNamespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: kube-system
+
+# ---------------------------------------------------------------------------
+# Workload hardening
+# ---------------------------------------------------------------------------
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  privileged: false
+  capabilities:
+    drop:
+      - ALL
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# SQLite data dir. emptyDir loses data on pod restart; enable persistence for a PVC.
+persistence:
+  enabled: false
+  storageClass: ""
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi
+
+probes:
+  path: /health
+  startup:
+    failureThreshold: 30
+    periodSeconds: 2
+  readiness:
+    periodSeconds: 10
+    timeoutSeconds: 3
+  liveness:
+    periodSeconds: 20
+    timeoutSeconds: 3
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []

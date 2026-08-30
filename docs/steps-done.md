@@ -40,4 +40,26 @@ High-level log of changes per commit, plus considerations. Newest step at the bo
   return an identical 404 (no token oracle).
 - Password may be sent via `X-Share-Password` header (preferred) or the
   `?password=` query param required by the brief.
-  
+
+---
+
+## Step 3 — Helm chart (Task 4 · Infrastructure)
+
+- Added `helm/vulntracker-api/` — a Helm chart deploying the FastAPI service
+- Two secret backends, chosen via `secrets.provider` in `values.yaml`:
+  - `eso` — renders an `ExternalSecret` (External Secrets Operator)
+  - `avp` — renders a `Secret` with Argo CD Vault Plugin `<path:...>` placeholders
+- `README` + chart `README` document usage
+
+**Considerations:**
+- No secret material in the chart. `Deployment` only consumes a k8s `Secret`;
+  the provider templates differ, the workload spec doesn't. New secrets (e.g. a
+  Postgres URL) are one entry in `secrets.items`.
+- Deny-by-default `NetworkPolicy`: ingress only from the ingress-controller
+  namespace to `:8000`; egress only to DNS + the notification service.
+- Hardened pod/container: non-root uid 10001, read-only rootfs, drop ALL caps,
+  no privilege escalation, `seccompProfile: RuntimeDefault`,
+  `automountServiceAccountToken: false`.
+- Resource requests/limits + startup/readiness/liveness probes on `/health`.
+- Default `replicaCount: 1` — SQLite prototype store can't scale horizontally;
+  called out in `NOTES.txt` and chart README, `persistence` toggle for a PVC.
