@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,6 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "app"))
 
 from database import Base, get_db  # noqa: E402
 from main import app  # noqa: E402
+from models import ShareLink  # noqa: E402
 
 TEST_DB_URL = "sqlite:///./test_vulntracker.db"
 engine = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
@@ -148,3 +150,112 @@ def test_delete_scan():
 
     resp = client.delete(f"/scans/{scan_id}", headers=auth_headers(token))
     assert resp.status_code == 204
+
+
+# ---------------------------------------------------------------------------
+# Shared report links
+# ---------------------------------------------------------------------------
+
+def _make_scan(token, **overrides):
+    body = {"title": "Shared finding", "severity": "high", "affected_component": "api"}
+    body.update(overrides)
+    return client.post("/scans", json=body, headers=auth_headers(token)).json()["id"]
+
+
+def _token_from_url(share_url):
+    return share_url.rsplit("/", 1)[1]
+
+
+def test_share_link_create_and_public_access():
+    token = register_and_login()
+    scan_id = _make_scan(token, description="internal detail", remediation_notes="secret plan")
+
+    resp = client.post(f"/scans/{scan_id}/share", json={}, headers=auth_headers(token))
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["share_url"].endswith(f"/share/{_token_from_url(body['share_url'])}")
+    assert body["password_protected"] is False
+
+    public = client.get(f"/share/{_token_from_url(body['share_url'])}")
+    assert public.status_code == 200
+    data = public.json()
+    assert data["title"] == "Shared finding"
+    # minimal disclosure — internal fields must not leak
+    assert "owner_id" not in data
+    assert "remediation_notes" not in data
+    assert "id" not in data
+
+
+def test_share_link_requires_scan_ownership():
+    owner = register_and_login("owner", "owner@example.com")
+    scan_id = _make_scan(owner)
+    attacker = register_and_login("attacker", "attacker@example.com")
+
+    resp = client.post(f"/scans/{scan_id}/share", json={}, headers=auth_headers(attacker))
+    assert resp.status_code == 404
+
+
+def test_share_link_unknown_token_is_404():
+    resp = client.get("/share/does-not-exist")
+    assert resp.status_code == 404
+
+
+def test_share_link_expired_is_404():
+    token = register_and_login()
+    scan_id = _make_scan(token)
+    share_url = client.post(
+        f"/scans/{scan_id}/share", json={}, headers=auth_headers(token)
+    ).json()["share_url"]
+
+    db = TestingSessionLocal()
+    link = db.query(ShareLink).one()
+    link.expires_at = datetime.utcnow() - timedelta(minutes=1)
+    db.commit()
+    db.close()
+
+    resp = client.get(f"/share/{_token_from_url(share_url)}")
+    assert resp.status_code == 404
+
+
+def test_share_link_password_protection():
+    token = register_and_login()
+    scan_id = _make_scan(token)
+    share_url = client.post(
+        f"/scans/{scan_id}/share",
+        json={"password": "correct horse"},
+        headers=auth_headers(token),
+    ).json()["share_url"]
+    tok = _token_from_url(share_url)
+
+    assert client.get(f"/share/{tok}").status_code == 401
+    assert client.get(f"/share/{tok}", params={"password": "wrong"}).status_code == 401
+    assert client.get(f"/share/{tok}", params={"password": "correct horse"}).status_code == 200
+    assert client.get(
+        f"/share/{tok}", headers={"X-Share-Password": "correct horse"}
+    ).status_code == 200
+
+
+def test_share_link_locks_after_repeated_failures():
+    token = register_and_login()
+    scan_id = _make_scan(token)
+    share_url = client.post(
+        f"/scans/{scan_id}/share",
+        json={"password": "correct horse"},
+        headers=auth_headers(token),
+    ).json()["share_url"]
+    tok = _token_from_url(share_url)
+
+    for _ in range(10):
+        assert client.get(f"/share/{tok}", params={"password": "wrong"}).status_code == 401
+
+    # locked now — even the correct password is refused
+    assert client.get(f"/share/{tok}", params={"password": "correct horse"}).status_code == 429
+
+
+def test_share_link_rejects_short_password():
+    token = register_and_login()
+    scan_id = _make_scan(token)
+    resp = client.post(
+        f"/scans/{scan_id}/share", json={"password": "short"}, headers=auth_headers(token)
+    )
+    assert resp.status_code == 422

@@ -49,6 +49,9 @@ services:
       NOTIFY_SERVICE_URL: http://notify:3001
       DATABASE_URL: sqlite:////data/vulntracker.db
       ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+      # Base URL embedded in generated share links. Must match how clients reach
+      # the API (set it to your public hostname, or to the API_PORT you override).
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8000}
     ports:
       - "127.0.0.1:${API_PORT:-8000}:8000"
     depends_on:

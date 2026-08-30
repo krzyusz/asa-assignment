@@ -22,3 +22,14 @@ ADMIN_API_KEY = os.environ.get(
 )
 
 NOTIFY_SERVICE_URL = os.environ.get("NOTIFY_SERVICE_URL", "http://localhost:3001")
+
+# Public base URL used to build shareable report links. Set this explicitly in
+# every deployment: it is deliberately NOT derived from the request Host header,
+# which is client-controlled and would allow an attacker to mint links that
+# point at a domain they control.
+PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "http://localhost:8000")
+
+# Number of wrong-password attempts before a share link is locked.
+SHARE_LINK_MAX_FAILED_ATTEMPTS = int(
+    os.environ.get("SHARE_LINK_MAX_FAILED_ATTEMPTS", "10")
+)

@@ -149,14 +149,55 @@ Tear down: `docker compose down -v`.
 
 ### Notes / assumptions
 
-- **`share_url` host / prototype scope**: the SQLite DB and in-memory webhook
-  registry are prototype stores, not production persistence.
+- **Prototype scope**: the SQLite DB and the notification service's in-memory
+  webhook registry are prototype stores, not production persistence.
 - **Known residual issues (tracked for Task 2/3, not fixed here)**: `app/config.py`
   and `notify/src/config.js` still carry hardcoded fallback secrets in source;
   the containerisation only makes them overridable. Removing the insecure
   fallbacks / failing closed on a missing `SECRET_KEY` is part of remediation.
 - The Node test suite requires Node 20+ (per CI); on older local Node it may fail
   to connect in its `before` hook.
+
+---
+
+## Shared Report Links (Task 1)
+
+Two endpoints let an owner share a single scan with an external stakeholder:
+
+| Method | Path | Auth | Notes |
+| ------ | ---- | ---- | ----- |
+| `POST` | `/scans/{scan_id}/share` | Bearer | Body: optional `{"password": "..."}` (8–72 chars). Returns `{ "share_url", "expires_at", "password_protected" }`. Only the scan **owner** may share. |
+| `GET`  | `/share/{token}` | Public | Returns a minimal scan view. Password (if set) via `X-Share-Password` header (preferred) or `?password=`. |
+
+Example:
+
+```bash
+curl -s -X POST $BASE/scans/1/share -H "authorization: Bearer $TOKEN" \
+  -H 'content-type: application/json' -d '{"password":"correct horse"}'
+# { "share_url": "http://localhost:8000/share/<token>", "expires_at": "...", "password_protected": true }
+
+curl -s "$BASE/share/<token>" -H 'X-Share-Password: correct horse'
+```
+
+Design choices (the "production-mature" option was taken at each fork):
+
+- **Link lifetime**: 24h, enforced server-side (`ShareLink.expires_at`).
+- **`share_url` host**: built from the configured `PUBLIC_BASE_URL`, **not** the
+  request `Host` header (which is client-controlled and would allow minting
+  links pointing at an attacker domain). Set `PUBLIC_BASE_URL` per environment;
+  it defaults to `http://localhost:8000` for the prototype.
+- **Token**: 256-bit `secrets.token_urlsafe(32)`, returned once. Only its
+  **SHA-256 hash** is stored, so a DB leak yields no usable links. A fast hash
+  is fine because the token is high-entropy.
+- **Password**: bcrypt (same context as user passwords), constant-time verify,
+  plus a per-link lockout after `SHARE_LINK_MAX_FAILED_ATTEMPTS` (default 10).
+- **Minimal disclosure**: the public view omits `owner_id`, database ids and
+  `remediation_notes` (potentially sensitive internal context).
+- **No token oracle**: unknown, expired and (pre-auth) valid tokens all return
+  an identical `404`.
+
+New table `share_links` is created automatically on startup (no migrations in
+this prototype).
 
 ---
 
