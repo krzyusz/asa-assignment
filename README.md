@@ -232,6 +232,59 @@ requests/limits, and `/health` probes.
 
 ---
 
+## Security scans
+
+Raw JSON output for every scan is committed under [`reports/`](reports/).
+Interpretation and prioritisation are in [`docs/findings.md`](docs/findings.md).
+
+Tools used (versions this run): Semgrep 1.175.0, Trivy 0.74.0, Prowler 5.40.0,
+Checkov 3.3.16. All commands run from the repo root.
+
+### SAST — Semgrep → `reports/sast.semgrep.json`
+
+```bash
+semgrep scan \
+  --config p/default --config p/python --config p/javascript \
+  --config p/security-audit --config p/owasp-top-ten --config p/secrets \
+  --config p/jwt --config p/command-injection --config p/sql-injection \
+  --config p/insecure-transport \
+  --metrics off --json -o reports/sast.semgrep.json \
+  app/ notify/src/ tests/
+```
+
+### SCA — Trivy → `reports/sca.trivy.json`
+
+```bash
+trivy fs --scanners vuln --format json -o reports/sca.trivy.json .
+```
+
+### Container image — Trivy → `reports/container.trivy.json`
+
+```bash
+docker build -t vulntracker-api:local .
+trivy image --scanners vuln,secret --format json \
+  -o reports/container.trivy.json vulntracker-api:local
+```
+
+### IaC — three tools (all reports kept)
+
+```bash
+# Trivy (primary) — also scans both Dockerfiles
+trivy config --format json -o reports/iac.trivy.json .
+
+# Checkov — broader K8s policy set, used as a second opinion
+checkov -d helm/vulntracker-api --framework helm -o json --quiet \
+  > reports/iac.checkov.json
+
+# Prowler (needs the trivy binary on PATH — its iac provider wraps Trivy)
+prowler iac --scan-path helm/vulntracker-api --scanners misconfig secret \
+  --output-formats json-ocsf --output-filename iac.prowler \
+  --output-directory reports --no-banner --ignore-exit-code-3
+mv reports/iac.prowler.ocsf.json reports/iac.prowler.json
+```
+
+---
+
 ## Your Tasks
 
 ### Task 1 — Extend the App _(~1–1.5 hrs)_

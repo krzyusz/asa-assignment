@@ -63,3 +63,34 @@ High-level log of changes per commit, plus considerations. Newest step at the bo
 - Resource requests/limits + startup/readiness/liveness probes on `/health`.
 - Default `replicaCount: 1` — SQLite prototype store can't scale horizontally;
   called out in `NOTES.txt` and chart README, `persistence` toggle for a PVC.
+
+---
+
+## Step 4 — Security scans (Task 2a)
+
+Ran all four scan categories; raw JSON in `reports/`, exact commands in the
+README ("Security scans").
+
+| Scan | Tool(s) → report |
+| ---- | ---------------- |
+| SAST | Semgrep → `sast.semgrep.json` |
+| SCA | Trivy `fs` → `sca.trivy.json` |
+| Container | Trivy `image` → `container.trivy.json` |
+| IaC | Trivy `config`, Checkov, Prowler `iac` → `iac.{trivy,checkov,prowler}.json` (all kept) |
+
+**Considerations:**
+- SAST → Semgrep, not Trivy: Trivy has no code/taint analysis, and one Semgrep
+  run covers both the Python API and the Node service.
+- IaC → three tools kept (the brief doesn't cap it at one). Prowler `iac` turned
+  out to shell out to the Trivy binary — identical findings (KSV-0109/0110/0125).
+  Checkov is a separate engine and flagged more chart-specific issues (7 vs 3),
+  incl. secrets-as-env-vars and image-not-pinned-by-digest. Trivy is primary,
+  Checkov the second opinion; Prowler's real value is live cloud/cluster posture,
+  not static linting.
+- Both Dockerfiles scanned clean (0 findings) — validates Step 1.
+
+Interpretation, prioritised findings table, triage and deferral rationale are in
+`docs/findings.md` (Task 2b). Headline: 2 P0 code bugs (SQLi in `/scans/search`,
+JWT `none` + hardcoded `SECRET_KEY`) and ~5 P1 (IDOR, stack-trace disclosure,
+password logging, unauthenticated notify + SSRF). Most raw scan volume is
+non-actionable (unfixable Debian base CVEs, transitive DoS).

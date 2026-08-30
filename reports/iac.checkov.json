@@ -1,0 +1,2053 @@
+{
+    "check_type": "helm",
+    "results": {
+        "failed_checks": [
+            {
+                "check_id": "CKV_K8S_15",
+                "bc_check_id": "BC_K8S_14",
+                "check_name": "Image Pull Policy should be Always",
+                "check_result": {
+                    "result": "FAILED",
+                    "evaluated_keys": [
+                        "spec/template/spec/containers/[0]/image",
+                        "spec/template/spec/containers/[0]/imagePullPolicy"
+                    ]
+                },
+                "code_block": [
+                    [
+                        3,
+                        "apiVersion: apps/v1\n"
+                    ],
+                    [
+                        4,
+                        "kind: Deployment\n"
+                    ],
+                    [
+                        5,
+                        "metadata:\n"
+                    ],
+                    [
+                        6,
+                        "  name: release-name-vulntracker-api\n"
+                    ],
+                    [
+                        7,
+                        "  labels:\n"
+                    ],
+                    [
+                        8,
+                        "    helm.sh/chart: vulntracker-api-0.1.0\n"
+                    ],
+                    [
+                        9,
+                        "    app.kubernetes.io/name: vulntracker-api\n"
+                    ],
+                    [
+                        10,
+                        "    app.kubernetes.io/instance: release-name\n"
+                    ],
+                    [
+                        11,
+                        "    app.kubernetes.io/version: \"1.0.0\"\n"
+                    ],
+                    [
+                        12,
+                        "    app.kubernetes.io/managed-by: Helm\n"
+                    ],
+                    [
+                        13,
+                        "spec:\n"
+                    ],
+                    [
+                        14,
+                        "  replicas: 1\n"
+                    ],
+                    [
+                        15,
+                        "  strategy:\n"
+                    ],
+                    [
+                        16,
+                        "    type: Recreate  # single writer to the SQLite volume\n"
+                    ],
+                    [
+                        17,
+                        "  selector:\n"
+                    ],
+                    [
+                        18,
+                        "    matchLabels:\n"
+                    ],
+                    [
+                        19,
+                        "      app.kubernetes.io/name: vulntracker-api\n"
+                    ],
+                    [
+                        20,
+                        "      app.kubernetes.io/instance: release-name\n"
+                    ],
+                    [
+                        21,
+                        "  template:\n"
+                    ],
+                    [
+                        22,
+                        "    metadata:\n"
+                    ],
+                    [
+                        23,
+                        "      labels:\n"
+                    ],
+                    [
+                        24,
+                        "        helm.sh/chart: vulntracker-api-0.1.0\n"
+                    ],
+                    [
+                        25,
+                        "        app.kubernetes.io/name: vulntracker-api\n"
+                    ],
+                    [
+                        26,
+                        "        app.kubernetes.io/instance: release-name\n"
+                    ],
+                    [
+                        27,
+                        "        app.kubernetes.io/version: \"1.0.0\"\n"
+                    ],
+                    [
+                        28,
+                        "        app.kubernetes.io/managed-by: Helm\n"
+                    ],
+                    [
+                        29,
+                        "      annotations:\n"
+                    ],
+                    [
+                        30,
+                        "        checksum/config: c7cf2af0dd3337d7a3367a11f36427fbb85a5e20b7d7378ab397512b667425a7\n"
+                    ],
+                    [
+                        31,
+                        "    spec:\n"
+                    ],
+                    [
+                        32,
+                        "      serviceAccountName: release-name-vulntracker-api\n"
+                    ],
+                    [
+                        33,
+                        "      automountServiceAccountToken: false\n"
+                    ],
+                    [
+                        34,
+                        "      securityContext:\n"
+                    ],
+                    [
+                        35,
+                        "        fsGroup: 10001\n"
+                    ],
+                    [
+                        36,
+                        "        runAsGroup: 10001\n"
+                    ],
+                    [
+                        37,
+                        "        runAsNonRoot: true\n"
+                    ],
+                    [
+                        38,
+                        "        runAsUser: 10001\n"
+                    ],
+                    [
+                        39,
+                        "        seccompProfile:\n"
+                    ],
+                    [
+                        40,
+                        "          type: RuntimeDefault\n"
+                    ],
+                    [
+                        41,
+                        "      containers:\n"
+                    ],
+                    [
+                        42,
+                        "        - name: api\n"
+                    ],
+                    [
+                        43,
+                        "          image: ghcr.io/cloudtriquetra/vulntracker-api:1.0.0\n"
+                    ],
+                    [
+                        44,
+                        "          imagePullPolicy: IfNotPresent\n"
+                    ],
+                    [
+                        45,
+                        "          securityContext:\n"
+                    ],
+                    [
+                        46,
+                        "            allowPrivilegeEscalation: false\n"
+                    ],
+                    [
+                        47,
+                        "            capabilities:\n"
+                    ],
+                    [
+                        48,
+                        "              drop:\n"
+                    ],
+                    [
+                        49,
+                        "              - ALL\n"
+                    ],
+                    [
+                        50,
+                        "            privileged: false\n"
+                    ],
+                    [
+                        51,
+                        "            readOnlyRootFilesystem: true\n"
+                    ],
+                    [
+                        52,
+                        "            runAsNonRoot: true\n"
+                    ],
+                    [
+                        53,
+                        "            runAsUser: 10001\n"
+                    ],
+                    [
+                        54,
+                        "          ports:\n"
+                    ],
+                    [
+                        55,
+                        "            - name: http\n"
+                    ],
+                    [
+                        56,
+                        "              containerPort: 8000\n"
+                    ],
+                    [
+                        57,
+                        "              protocol: TCP\n"
+                    ],
+                    [
+                        58,
+                        "          envFrom:\n"
+                    ],
+                    [
+                        59,
+                        "            - configMapRef:\n"
+                    ],
+                    [
+                        60,
+                        "                name: release-name-vulntracker-api-config\n"
+                    ],
+                    [
+                        61,
+                        "          env:\n"
+                    ],
+                    [
+                        62,
+                        "            - name: SECRET_KEY\n"
+                    ],
+                    [
+                        63,
+                        "              valueFrom:\n"
+                    ],
+                    [
+                        64,
+                        "                secretKeyRef:\n"
+                    ],
+                    [
+                        65,
+                        "                  name: release-name-vulntracker-api-secrets\n"
+                    ],
+                    [
+                        66,
+                        "                  key: SECRET_KEY\n"
+                    ],
+                    [
+                        67,
+                        "          startupProbe:\n"
+                    ],
+                    [
+                        68,
+                        "            httpGet:\n"
+                    ],
+                    [
+                        69,
+                        "              path: /health\n"
+                    ],
+                    [
+                        70,
+                        "              port: http\n"
+                    ],
+                    [
+                        71,
+                        "            failureThreshold: 30\n"
+                    ],
+                    [
+                        72,
+                        "            periodSeconds: 2\n"
+                    ],
+                    [
+                        73,
+                        "          readinessProbe:\n"
+                    ],
+                    [
+                        74,
+                        "            httpGet:\n"
+                    ],
+                    [
+                        75,
+                        "              path: /health\n"
+                    ],
+                    [
+                        76,
+                        "              port: http\n"
+                    ],
+                    [
+                        77,
+                        "            periodSeconds: 10\n"
+                    ],
+                    [
+                        78,
+                        "            timeoutSeconds: 3\n"
+                    ],
+                    [
+                        79,
+                        "          livenessProbe:\n"
+                    ],
+                    [
+                        80,
+                        "            httpGet:\n"
+                    ],
+                    [
+                        81,
+                        "              path: /health\n"
+                    ],
+                    [
+                        82,
+                        "              port: http\n"
+                    ],
+                    [
+                        83,
+                        "            periodSeconds: 20\n"
+                    ],
+                    [
+                        84,
+                        "            timeoutSeconds: 3\n"
+                    ],
+                    [
+                        85,
+                        "          resources:\n"
+                    ],
+                    [
+                        86,
+                        "            limits:\n"
+                    ],
+                    [
+                        87,
+                        "              cpu: 500m\n"
+                    ],
+                    [
+                        88,
+                        "              memory: 256Mi\n"
+                    ],
+                    [
+                        89,
+                        "            requests:\n"
+                    ],
+                    [
+                        90,
+                        "              cpu: 100m\n"
+                    ],
+                    [
+                        91,
+                        "              memory: 128Mi\n"
+                    ],
+                    [
+                        92,
+                        "          volumeMounts:\n"
+                    ],
+                    [
+                        93,
+                        "            - name: data\n"
+                    ],
+                    [
+                        94,
+                        "              mountPath: /data\n"
+                    ],
+                    [
+                        95,
+                        "            - name: tmp\n"
+                    ],
+                    [
+                        96,
+                        "              mountPath: /tmp\n"
+                    ],
+                    [
+                        97,
+                        "      volumes:\n"
+                    ],
+                    [
+                        98,
+                        "        - name: tmp\n"
+                    ],
+                    [
+                        99,
+                        "          emptyDir: {}\n"
+                    ],
+                    [
+                        100,
+                        "        - name: data\n"
+                    ],
+                    [
+                        101,
+                        "          emptyDir: {}\n"
+                    ]
+                ],
+                "file_path": "/vulntracker-api/templates/deployment.yaml",
+                "file_abs_path": "/tmp/tmp1eyn6_wy/vulntracker-api/templates/deployment.yaml",
+                "repo_file_path": "/vulntracker-api/templates/deployment.yaml",
+                "file_line_range": [
+                    3,
+                    101
+                ],
+                "resource": "Deployment.default.release-name-vulntracker-api",
+                "evaluations": {},
+                "check_class": "checkov.kubernetes.checks.resource.k8s.ImagePullPolicyAlways",
+                "fixed_definition": null,
+                "entity_tags": null,
+                "caller_file_path": null,
+                "caller_file_line_range": null,
+                "resource_address": null,
+                "severity": null,
+                "bc_category": null,
+                "benchmarks": null,
+                "description": null,
+                "short_description": null,
+                "vulnerability_details": null,
+                "connected_node": null,
+                "guideline": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/kubernetes-policies/kubernetes-policy-index/bc-k8s-14",
+                "details": [],
+                "check_len": null,
+                "definition_context_file_path": null
+            },
+            {
+                "check_id": "CKV_K8S_21",
+                "bc_check_id": "BC_K8S_20",
+                "check_name": "The default namespace should not be used",
+                "check_result": {
+                    "result": "FAILED",
+                    "evaluated_keys": []
+                },
+                "code_block": [
+                    [
+                        3,
+                        "apiVersion: apps/v1\n"
+                    ],
+                    [
+                        4,
+                        "kind: Deployment\n"
+                    ],
+                    [
+                        5,
+                        "metadata:\n"
+                    ],
+                    [
+                        6,
+                        "  name: release-name-vulntracker-api\n"
+                    ],
+                    [
+                        7,
+                        "  labels:\n"
+                    ],
+                    [
+                        8,
+                        "    helm.sh/chart: vulntracker-api-0.1.0\n"
+                    ],
+                    [
+                        9,
+                        "    app.kubernetes.io/name: vulntracker-api\n"
+                    ],
+                    [
+                        10,
+                        "    app.kubernetes.io/instance: release-name\n"
+                    ],
+                    [
+                        11,
+                        "    app.kubernetes.io/version: \"1.0.0\"\n"
+                    ],
+                    [
+                        12,
+                        "    app.kubernetes.io/managed-by: Helm\n"
+                    ],
+                    [
+                        13,
+                        "spec:\n"
+                    ],
+                    [
+                        14,
+                        "  replicas: 1\n"
+                    ],
+                    [
+                        15,
+                        "  strategy:\n"
+                    ],
+                    [
+                        16,
+                        "    type: Recreate  # single writer to the SQLite volume\n"
+                    ],
+                    [
+                        17,
+                        "  selector:\n"
+                    ],
+                    [
+                        18,
+                        "    matchLabels:\n"
+                    ],
+                    [
+                        19,
+                        "      app.kubernetes.io/name: vulntracker-api\n"
+                    ],
+                    [
+                        20,
+                        "      app.kubernetes.io/instance: release-name\n"
+                    ],
+                    [
+                        21,
+                        "  template:\n"
+                    ],
+                    [
+                        22,
+                        "    metadata:\n"
+                    ],
+                    [
+                        23,
+                        "      labels:\n"
+                    ],
+                    [
+                        24,
+                        "        helm.sh/chart: vulntracker-api-0.1.0\n"
+                    ],
+                    [
+                        25,
+                        "        app.kubernetes.io/name: vulntracker-api\n"
+                    ],
+                    [
+                        26,
+                        "        app.kubernetes.io/instance: release-name\n"
+                    ],
+                    [
+                        27,
+                        "        app.kubernetes.io/version: \"1.0.0\"\n"
+                    ],
+                    [
+                        28,
+                        "        app.kubernetes.io/managed-by: Helm\n"
+                    ],
+                    [
+                        29,
+                        "      annotations:\n"
+                    ],
+                    [
+                        30,
+                        "        checksum/config: c7cf2af0dd3337d7a3367a11f36427fbb85a5e20b7d7378ab397512b667425a7\n"
+                    ],
+                    [
+                        31,
+                        "    spec:\n"
+                    ],
+                    [
+                        32,
+                        "      serviceAccountName: release-name-vulntracker-api\n"
+                    ],
+                    [
+                        33,
+                        "      automountServiceAccountToken: false\n"
+                    ],
+                    [
+                        34,
+                        "      securityContext:\n"
+                    ],
+                    [
+                        35,
+                        "        fsGroup: 10001\n"
+                    ],
+                    [
+                        36,
+                        "        runAsGroup: 10001\n"
+                    ],
+                    [
+                        37,
+                        "        runAsNonRoot: true\n"
+                    ],
+                    [
+                        38,
+                        "        runAsUser: 10001\n"
+                    ],
+                    [
+                        39,
+                        "        seccompProfile:\n"
+                    ],
+                    [
+                        40,
+                        "          type: RuntimeDefault\n"
+                    ],
+                    [
+                        41,
+                        "      containers:\n"
+                    ],
+                    [
+                        42,
+                        "        - name: api\n"
+                    ],
+                    [
+                        43,
+                        "          image: ghcr.io/cloudtriquetra/vulntracker-api:1.0.0\n"
+                    ],
+                    [
+                        44,
+                        "          imagePullPolicy: IfNotPresent\n"
+                    ],
+                    [
+                        45,
+                        "          securityContext:\n"
+                    ],
+                    [
+                        46,
+                        "            allowPrivilegeEscalation: false\n"
+                    ],
+                    [
+                        47,
+                        "            capabilities:\n"
+                    ],
+                    [
+                        48,
+                        "              drop:\n"
+                    ],
+                    [
+                        49,
+                        "              - ALL\n"
+                    ],
+                    [
+                        50,
+                        "            privileged: false\n"
+                    ],
+                    [
+                        51,
+                        "            readOnlyRootFilesystem: true\n"
+                    ],
+                    [
+                        52,
+                        "            runAsNonRoot: true\n"
+                    ],
+                    [
+                        53,
+                        "            runAsUser: 10001\n"
+                    ],
+                    [
+                        54,
+                        "          ports:\n"
+                    ],
+                    [
+                        55,
+                        "            - name: http\n"
+                    ],
+                    [
+                        56,
+                        "              containerPort: 8000\n"
+                    ],
+                    [
+                        57,
+                        "              protocol: TCP\n"
+                    ],
+                    [
+                        58,
+                        "          envFrom:\n"
+                    ],
+                    [
+                        59,
+                        "            - configMapRef:\n"
+                    ],
+                    [
+                        60,
+                        "                name: release-name-vulntracker-api-config\n"
+                    ],
+                    [
+                        61,
+                        "          env:\n"
+                    ],
+                    [
+                        62,
+                        "            - name: SECRET_KEY\n"
+                    ],
+                    [
+                        63,
+                        "              valueFrom:\n"
+                    ],
+                    [
+                        64,
+                        "                secretKeyRef:\n"
+                    ],
+                    [
+                        65,
+                        "                  name: release-name-vulntracker-api-secrets\n"
+                    ],
+                    [
+                        66,
+                        "                  key: SECRET_KEY\n"
+                    ],
+                    [
+                        67,
+                        "          startupProbe:\n"
+                    ],
+                    [
+                        68,
+                        "            httpGet:\n"
+                    ],
+                    [
+                        69,
+                        "              path: /health\n"
+                    ],
+                    [
+                        70,
+                        "              port: http\n"
+                    ],
+                    [
+                        71,
+                        "            failureThreshold: 30\n"
+                    ],
+                    [
+                        72,
+                        "            periodSeconds: 2\n"
+                    ],
+                    [
+                        73,
+                        "          readinessProbe:\n"
+                    ],
+                    [
+                        74,
+                        "            httpGet:\n"
+                    ],
+                    [
+                        75,
+                        "              path: /health\n"
+                    ],
+                    [
+                        76,
+                        "              port: http\n"
+                    ],
+                    [
+                        77,
+                        "            periodSeconds: 10\n"
+                    ],
+                    [
+                        78,
+                        "            timeoutSeconds: 3\n"
+                    ],
+                    [
+                        79,
+                        "          livenessProbe:\n"
+                    ],
+                    [
+                        80,
+                        "            httpGet:\n"
+                    ],
+                    [
+                        81,
+                        "              path: /health\n"
+                    ],
+                    [
+                        82,
+                        "              port: http\n"
+                    ],
+                    [
+                        83,
+                        "            periodSeconds: 20\n"
+                    ],
+                    [
+                        84,
+                        "            timeoutSeconds: 3\n"
+                    ],
+                    [
+                        85,
+                        "          resources:\n"
+                    ],
+                    [
+                        86,
+                        "            limits:\n"
+                    ],
+                    [
+                        87,
+                        "              cpu: 500m\n"
+                    ],
+                    [
+                        88,
+                        "              memory: 256Mi\n"
+                    ],
+                    [
+                        89,
+                        "            requests:\n"
+                    ],
+                    [
+                        90,
+                        "              cpu: 100m\n"
+                    ],
+                    [
+                        91,
+                        "              memory: 128Mi\n"
+                    ],
+                    [
+                        92,
+                        "          volumeMounts:\n"
+                    ],
+                    [
+                        93,
+                        "            - name: data\n"
+                    ],
+                    [
+                        94,
+                        "              mountPath: /data\n"
+                    ],
+                    [
+                        95,
+                        "            - name: tmp\n"
+                    ],
+                    [
+                        96,
+                        "              mountPath: /tmp\n"
+                    ],
+                    [
+                        97,
+                        "      volumes:\n"
+                    ],
+                    [
+                        98,
+                        "        - name: tmp\n"
+                    ],
+                    [
+                        99,
+                        "          emptyDir: {}\n"
+                    ],
+                    [
+                        100,
+                        "        - name: data\n"
+                    ],
+                    [
+                        101,
+                        "          emptyDir: {}\n"
+                    ]
+                ],
+                "file_path": "/vulntracker-api/templates/deployment.yaml",
+                "file_abs_path": "/tmp/tmp1eyn6_wy/vulntracker-api/templates/deployment.yaml",
+                "repo_file_path": "/vulntracker-api/templates/deployment.yaml",
+                "file_line_range": [
+                    3,
+                    101
+                ],
+                "resource": "Deployment.default.release-name-vulntracker-api",
+                "evaluations": {},
+                "check_class": "checkov.kubernetes.checks.resource.k8s.DefaultNamespace",
+                "fixed_definition": null,
+                "entity_tags": null,
+                "caller_file_path": null,
+                "caller_file_line_range": null,
+                "resource_address": null,
+                "severity": null,
+                "bc_category": null,
+                "benchmarks": null,
+                "description": null,
+                "short_description": null,
+                "vulnerability_details": null,
+                "connected_node": null,
+                "guideline": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/kubernetes-policies/kubernetes-policy-index/bc-k8s-20",
+                "details": [],
+                "check_len": null,
+                "definition_context_file_path": null
+            },
+            {
+                "check_id": "CKV_K8S_35",
+                "bc_check_id": "BC_K8S_33",
+                "check_name": "Prefer using secrets as files over secrets as environment variables",
+                "check_result": {
+                    "result": "FAILED",
+                    "evaluated_keys": [
+                        "spec/template/spec/containers/[0]/env/[0]/valueFrom/secretKeyRef"
+                    ]
+                },
+                "code_block": [
+                    [
+                        3,
+                        "apiVersion: apps/v1\n"
+                    ],
+                    [
+                        4,
+                        "kind: Deployment\n"
+                    ],
+                    [
+                        5,
+                        "metadata:\n"
+                    ],
+                    [
+                        6,
+                        "  name: release-name-vulntracker-api\n"
+                    ],
+                    [
+                        7,
+                        "  labels:\n"
+                    ],
+                    [
+                        8,
+                        "    helm.sh/chart: vulntracker-api-0.1.0\n"
+                    ],
+                    [
+                        9,
+                        "    app.kubernetes.io/name: vulntracker-api\n"
+                    ],
+                    [
+                        10,
+                        "    app.kubernetes.io/instance: release-name\n"
+                    ],
+                    [
+                        11,
+                        "    app.kubernetes.io/version: \"1.0.0\"\n"
+                    ],
+                    [
+                        12,
+                        "    app.kubernetes.io/managed-by: Helm\n"
+                    ],
+                    [
+                        13,
+                        "spec:\n"
+                    ],
+                    [
+                        14,
+                        "  replicas: 1\n"
+                    ],
+                    [
+                        15,
+                        "  strategy:\n"
+                    ],
+                    [
+                        16,
+                        "    type: Recreate  # single writer to the SQLite volume\n"
+                    ],
+                    [
+                        17,
+                        "  selector:\n"
+                    ],
+                    [
+                        18,
+                        "    matchLabels:\n"
+                    ],
+                    [
+                        19,
+                        "      app.kubernetes.io/name: vulntracker-api\n"
+                    ],
+                    [
+                        20,
+                        "      app.kubernetes.io/instance: release-name\n"
+                    ],
+                    [
+                        21,
+                        "  template:\n"
+                    ],
+                    [
+                        22,
+                        "    metadata:\n"
+                    ],
+                    [
+                        23,
+                        "      labels:\n"
+                    ],
+                    [
+                        24,
+                        "        helm.sh/chart: vulntracker-api-0.1.0\n"
+                    ],
+                    [
+                        25,
+                        "        app.kubernetes.io/name: vulntracker-api\n"
+                    ],
+                    [
+                        26,
+                        "        app.kubernetes.io/instance: release-name\n"
+                    ],
+                    [
+                        27,
+                        "        app.kubernetes.io/version: \"1.0.0\"\n"
+                    ],
+                    [
+                        28,
+                        "        app.kubernetes.io/managed-by: Helm\n"
+                    ],
+                    [
+                        29,
+                        "      annotations:\n"
+                    ],
+                    [
+                        30,
+                        "        checksum/config: c7cf2af0dd3337d7a3367a11f36427fbb85a5e20b7d7378ab397512b667425a7\n"
+                    ],
+                    [
+                        31,
+                        "    spec:\n"
+                    ],
+                    [
+                        32,
+                        "      serviceAccountName: release-name-vulntracker-api\n"
+                    ],
+                    [
+                        33,
+                        "      automountServiceAccountToken: false\n"
+                    ],
+                    [
+                        34,
+                        "      securityContext:\n"
+                    ],
+                    [
+                        35,
+                        "        fsGroup: 10001\n"
+                    ],
+                    [
+                        36,
+                        "        runAsGroup: 10001\n"
+                    ],
+                    [
+                        37,
+                        "        runAsNonRoot: true\n"
+                    ],
+                    [
+                        38,
+                        "        runAsUser: 10001\n"
+                    ],
+                    [
+                        39,
+                        "        seccompProfile:\n"
+                    ],
+                    [
+                        40,
+                        "          type: RuntimeDefault\n"
+                    ],
+                    [
+                        41,
+                        "      containers:\n"
+                    ],
+                    [
+                        42,
+                        "        - name: api\n"
+                    ],
+                    [
+                        43,
+                        "          image: ghcr.io/cloudtriquetra/vulntracker-api:1.0.0\n"
+                    ],
+                    [
+                        44,
+                        "          imagePullPolicy: IfNotPresent\n"
+                    ],
+                    [
+                        45,
+                        "          securityContext:\n"
+                    ],
+                    [
+                        46,
+                        "            allowPrivilegeEscalation: false\n"
+                    ],
+                    [
+                        47,
+                        "            capabilities:\n"
+                    ],
+                    [
+                        48,
+                        "              drop:\n"
+                    ],
+                    [
+                        49,
+                        "              - ALL\n"
+                    ],
+                    [
+                        50,
+                        "            privileged: false\n"
+                    ],
+                    [
+                        51,
+                        "            readOnlyRootFilesystem: true\n"
+                    ],
+                    [
+                        52,
+                        "            runAsNonRoot: true\n"
+                    ],
+                    [
+                        53,
+                        "            runAsUser: 10001\n"
+                    ],
+                    [
+                        54,
+                        "          ports:\n"
+                    ],
+                    [
+                        55,
+                        "            - name: http\n"
+                    ],
+                    [
+                        56,
+                        "              containerPort: 8000\n"
+                    ],
+                    [
+                        57,
+                        "              protocol: TCP\n"
+                    ],
+                    [
+                        58,
+                        "          envFrom:\n"
+                    ],
+                    [
+                        59,
+                        "            - configMapRef:\n"
+                    ],
+                    [
+                        60,
+                        "                name: release-name-vulntracker-api-config\n"
+                    ],
+                    [
+                        61,
+                        "          env:\n"
+                    ],
+                    [
+                        62,
+                        "            - name: SECRET_KEY\n"
+                    ],
+                    [
+                        63,
+                        "              valueFrom:\n"
+                    ],
+                    [
+                        64,
+                        "                secretKeyRef:\n"
+                    ],
+                    [
+                        65,
+                        "                  name: release-name-vulntracker-api-secrets\n"
+                    ],
+                    [
+                        66,
+                        "                  key: SECRET_KEY\n"
+                    ],
+                    [
+                        67,
+                        "          startupProbe:\n"
+                    ],
+                    [
+                        68,
+                        "            httpGet:\n"
+                    ],
+                    [
+                        69,
+                        "              path: /health\n"
+                    ],
+                    [
+                        70,
+                        "              port: http\n"
+                    ],
+                    [
+                        71,
+                        "            failureThreshold: 30\n"
+                    ],
+                    [
+                        72,
+                        "            periodSeconds: 2\n"
+                    ],
+                    [
+                        73,
+                        "          readinessProbe:\n"
+                    ],
+                    [
+                        74,
+                        "            httpGet:\n"
+                    ],
+                    [
+                        75,
+                        "              path: /health\n"
+                    ],
+                    [
+                        76,
+                        "              port: http\n"
+                    ],
+                    [
+                        77,
+                        "            periodSeconds: 10\n"
+                    ],
+                    [
+                        78,
+                        "            timeoutSeconds: 3\n"
+                    ],
+                    [
+                        79,
+                        "          livenessProbe:\n"
+                    ],
+                    [
+                        80,
+                        "            httpGet:\n"
+                    ],
+                    [
+                        81,
+                        "              path: /health\n"
+                    ],
+                    [
+                        82,
+                        "              port: http\n"
+                    ],
+                    [
+                        83,
+                        "            periodSeconds: 20\n"
+                    ],
+                    [
+                        84,
+                        "            timeoutSeconds: 3\n"
+                    ],
+                    [
+                        85,
+                        "          resources:\n"
+                    ],
+                    [
+                        86,
+                        "            limits:\n"
+                    ],
+                    [
+                        87,
+                        "              cpu: 500m\n"
+                    ],
+                    [
+                        88,
+                        "              memory: 256Mi\n"
+                    ],
+                    [
+                        89,
+                        "            requests:\n"
+                    ],
+                    [
+                        90,
+                        "              cpu: 100m\n"
+                    ],
+                    [
+                        91,
+                        "              memory: 128Mi\n"
+                    ],
+                    [
+                        92,
+                        "          volumeMounts:\n"
+                    ],
+                    [
+                        93,
+                        "            - name: data\n"
+                    ],
+                    [
+                        94,
+                        "              mountPath: /data\n"
+                    ],
+                    [
+                        95,
+                        "            - name: tmp\n"
+                    ],
+                    [
+                        96,
+                        "              mountPath: /tmp\n"
+                    ],
+                    [
+                        97,
+                        "      volumes:\n"
+                    ],
+                    [
+                        98,
+                        "        - name: tmp\n"
+                    ],
+                    [
+                        99,
+                        "          emptyDir: {}\n"
+                    ],
+                    [
+                        100,
+                        "        - name: data\n"
+                    ],
+                    [
+                        101,
+                        "          emptyDir: {}\n"
+                    ]
+                ],
+                "file_path": "/vulntracker-api/templates/deployment.yaml",
+                "file_abs_path": "/tmp/tmp1eyn6_wy/vulntracker-api/templates/deployment.yaml",
+                "repo_file_path": "/vulntracker-api/templates/deployment.yaml",
+                "file_line_range": [
+                    3,
+                    101
+                ],
+                "resource": "Deployment.default.release-name-vulntracker-api",
+                "evaluations": {},
+                "check_class": "checkov.kubernetes.checks.resource.k8s.Secrets",
+                "fixed_definition": null,
+                "entity_tags": null,
+                "caller_file_path": null,
+                "caller_file_line_range": null,
+                "resource_address": null,
+                "severity": null,
+                "bc_category": null,
+                "benchmarks": null,
+                "description": null,
+                "short_description": null,
+                "vulnerability_details": null,
+                "connected_node": null,
+                "guideline": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/kubernetes-policies/kubernetes-policy-index/bc-k8s-33",
+                "details": [],
+                "check_len": null,
+                "definition_context_file_path": null
+            },
+            {
+                "check_id": "CKV_K8S_43",
+                "bc_check_id": "BC_K8S_39",
+                "check_name": "Image should use digest",
+                "check_result": {
+                    "result": "FAILED",
+                    "evaluated_keys": [
+                        "spec/template/spec/containers/[0]/image"
+                    ]
+                },
+                "code_block": [
+                    [
+                        3,
+                        "apiVersion: apps/v1\n"
+                    ],
+                    [
+                        4,
+                        "kind: Deployment\n"
+                    ],
+                    [
+                        5,
+                        "metadata:\n"
+                    ],
+                    [
+                        6,
+                        "  name: release-name-vulntracker-api\n"
+                    ],
+                    [
+                        7,
+                        "  labels:\n"
+                    ],
+                    [
+                        8,
+                        "    helm.sh/chart: vulntracker-api-0.1.0\n"
+                    ],
+                    [
+                        9,
+                        "    app.kubernetes.io/name: vulntracker-api\n"
+                    ],
+                    [
+                        10,
+                        "    app.kubernetes.io/instance: release-name\n"
+                    ],
+                    [
+                        11,
+                        "    app.kubernetes.io/version: \"1.0.0\"\n"
+                    ],
+                    [
+                        12,
+                        "    app.kubernetes.io/managed-by: Helm\n"
+                    ],
+                    [
+                        13,
+                        "spec:\n"
+                    ],
+                    [
+                        14,
+                        "  replicas: 1\n"
+                    ],
+                    [
+                        15,
+                        "  strategy:\n"
+                    ],
+                    [
+                        16,
+                        "    type: Recreate  # single writer to the SQLite volume\n"
+                    ],
+                    [
+                        17,
+                        "  selector:\n"
+                    ],
+                    [
+                        18,
+                        "    matchLabels:\n"
+                    ],
+                    [
+                        19,
+                        "      app.kubernetes.io/name: vulntracker-api\n"
+                    ],
+                    [
+                        20,
+                        "      app.kubernetes.io/instance: release-name\n"
+                    ],
+                    [
+                        21,
+                        "  template:\n"
+                    ],
+                    [
+                        22,
+                        "    metadata:\n"
+                    ],
+                    [
+                        23,
+                        "      labels:\n"
+                    ],
+                    [
+                        24,
+                        "        helm.sh/chart: vulntracker-api-0.1.0\n"
+                    ],
+                    [
+                        25,
+                        "        app.kubernetes.io/name: vulntracker-api\n"
+                    ],
+                    [
+                        26,
+                        "        app.kubernetes.io/instance: release-name\n"
+                    ],
+                    [
+                        27,
+                        "        app.kubernetes.io/version: \"1.0.0\"\n"
+                    ],
+                    [
+                        28,
+                        "        app.kubernetes.io/managed-by: Helm\n"
+                    ],
+                    [
+                        29,
+                        "      annotations:\n"
+                    ],
+                    [
+                        30,
+                        "        checksum/config: c7cf2af0dd3337d7a3367a11f36427fbb85a5e20b7d7378ab397512b667425a7\n"
+                    ],
+                    [
+                        31,
+                        "    spec:\n"
+                    ],
+                    [
+                        32,
+                        "      serviceAccountName: release-name-vulntracker-api\n"
+                    ],
+                    [
+                        33,
+                        "      automountServiceAccountToken: false\n"
+                    ],
+                    [
+                        34,
+                        "      securityContext:\n"
+                    ],
+                    [
+                        35,
+                        "        fsGroup: 10001\n"
+                    ],
+                    [
+                        36,
+                        "        runAsGroup: 10001\n"
+                    ],
+                    [
+                        37,
+                        "        runAsNonRoot: true\n"
+                    ],
+                    [
+                        38,
+                        "        runAsUser: 10001\n"
+                    ],
+                    [
+                        39,
+                        "        seccompProfile:\n"
+                    ],
+                    [
+                        40,
+                        "          type: RuntimeDefault\n"
+                    ],
+                    [
+                        41,
+                        "      containers:\n"
+                    ],
+                    [
+                        42,
+                        "        - name: api\n"
+                    ],
+                    [
+                        43,
+                        "          image: ghcr.io/cloudtriquetra/vulntracker-api:1.0.0\n"
+                    ],
+                    [
+                        44,
+                        "          imagePullPolicy: IfNotPresent\n"
+                    ],
+                    [
+                        45,
+                        "          securityContext:\n"
+                    ],
+                    [
+                        46,
+                        "            allowPrivilegeEscalation: false\n"
+                    ],
+                    [
+                        47,
+                        "            capabilities:\n"
+                    ],
+                    [
+                        48,
+                        "              drop:\n"
+                    ],
+                    [
+                        49,
+                        "              - ALL\n"
+                    ],
+                    [
+                        50,
+                        "            privileged: false\n"
+                    ],
+                    [
+                        51,
+                        "            readOnlyRootFilesystem: true\n"
+                    ],
+                    [
+                        52,
+                        "            runAsNonRoot: true\n"
+                    ],
+                    [
+                        53,
+                        "            runAsUser: 10001\n"
+                    ],
+                    [
+                        54,
+                        "          ports:\n"
+                    ],
+                    [
+                        55,
+                        "            - name: http\n"
+                    ],
+                    [
+                        56,
+                        "              containerPort: 8000\n"
+                    ],
+                    [
+                        57,
+                        "              protocol: TCP\n"
+                    ],
+                    [
+                        58,
+                        "          envFrom:\n"
+                    ],
+                    [
+                        59,
+                        "            - configMapRef:\n"
+                    ],
+                    [
+                        60,
+                        "                name: release-name-vulntracker-api-config\n"
+                    ],
+                    [
+                        61,
+                        "          env:\n"
+                    ],
+                    [
+                        62,
+                        "            - name: SECRET_KEY\n"
+                    ],
+                    [
+                        63,
+                        "              valueFrom:\n"
+                    ],
+                    [
+                        64,
+                        "                secretKeyRef:\n"
+                    ],
+                    [
+                        65,
+                        "                  name: release-name-vulntracker-api-secrets\n"
+                    ],
+                    [
+                        66,
+                        "                  key: SECRET_KEY\n"
+                    ],
+                    [
+                        67,
+                        "          startupProbe:\n"
+                    ],
+                    [
+                        68,
+                        "            httpGet:\n"
+                    ],
+                    [
+                        69,
+                        "              path: /health\n"
+                    ],
+                    [
+                        70,
+                        "              port: http\n"
+                    ],
+                    [
+                        71,
+                        "            failureThreshold: 30\n"
+                    ],
+                    [
+                        72,
+                        "            periodSeconds: 2\n"
+                    ],
+                    [
+                        73,
+                        "          readinessProbe:\n"
+                    ],
+                    [
+                        74,
+                        "            httpGet:\n"
+                    ],
+                    [
+                        75,
+                        "              path: /health\n"
+                    ],
+                    [
+                        76,
+                        "              port: http\n"
+                    ],
+                    [
+                        77,
+                        "            periodSeconds: 10\n"
+                    ],
+                    [
+                        78,
+                        "            timeoutSeconds: 3\n"
+                    ],
+                    [
+                        79,
+                        "          livenessProbe:\n"
+                    ],
+                    [
+                        80,
+                        "            httpGet:\n"
+                    ],
+                    [
+                        81,
+                        "              path: /health\n"
+                    ],
+                    [
+                        82,
+                        "              port: http\n"
+                    ],
+                    [
+                        83,
+                        "            periodSeconds: 20\n"
+                    ],
+                    [
+                        84,
+                        "            timeoutSeconds: 3\n"
+                    ],
+                    [
+                        85,
+                        "          resources:\n"
+                    ],
+                    [
+                        86,
+                        "            limits:\n"
+                    ],
+                    [
+                        87,
+                        "              cpu: 500m\n"
+                    ],
+                    [
+                        88,
+                        "              memory: 256Mi\n"
+                    ],
+                    [
+                        89,
+                        "            requests:\n"
+                    ],
+                    [
+                        90,
+                        "              cpu: 100m\n"
+                    ],
+                    [
+                        91,
+                        "              memory: 128Mi\n"
+                    ],
+                    [
+                        92,
+                        "          volumeMounts:\n"
+                    ],
+                    [
+                        93,
+                        "            - name: data\n"
+                    ],
+                    [
+                        94,
+                        "              mountPath: /data\n"
+                    ],
+                    [
+                        95,
+                        "            - name: tmp\n"
+                    ],
+                    [
+                        96,
+                        "              mountPath: /tmp\n"
+                    ],
+                    [
+                        97,
+                        "      volumes:\n"
+                    ],
+                    [
+                        98,
+                        "        - name: tmp\n"
+                    ],
+                    [
+                        99,
+                        "          emptyDir: {}\n"
+                    ],
+                    [
+                        100,
+                        "        - name: data\n"
+                    ],
+                    [
+                        101,
+                        "          emptyDir: {}\n"
+                    ]
+                ],
+                "file_path": "/vulntracker-api/templates/deployment.yaml",
+                "file_abs_path": "/tmp/tmp1eyn6_wy/vulntracker-api/templates/deployment.yaml",
+                "repo_file_path": "/vulntracker-api/templates/deployment.yaml",
+                "file_line_range": [
+                    3,
+                    101
+                ],
+                "resource": "Deployment.default.release-name-vulntracker-api",
+                "evaluations": {},
+                "check_class": "checkov.kubernetes.checks.resource.k8s.ImageDigest",
+                "fixed_definition": null,
+                "entity_tags": null,
+                "caller_file_path": null,
+                "caller_file_line_range": null,
+                "resource_address": null,
+                "severity": null,
+                "bc_category": null,
+                "benchmarks": null,
+                "description": null,
+                "short_description": null,
+                "vulnerability_details": null,
+                "connected_node": null,
+                "guideline": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/kubernetes-policies/kubernetes-policy-index/bc-k8s-39",
+                "details": [],
+                "check_len": null,
+                "definition_context_file_path": null
+            },
+            {
+                "check_id": "CKV_K8S_21",
+                "bc_check_id": "BC_K8S_20",
+                "check_name": "The default namespace should not be used",
+                "check_result": {
+                    "result": "FAILED",
+                    "evaluated_keys": []
+                },
+                "code_block": [
+                    [
+                        3,
+                        "apiVersion: v1\n"
+                    ],
+                    [
+                        4,
+                        "kind: ServiceAccount\n"
+                    ],
+                    [
+                        5,
+                        "metadata:\n"
+                    ],
+                    [
+                        6,
+                        "  name: release-name-vulntracker-api\n"
+                    ],
+                    [
+                        7,
+                        "  labels:\n"
+                    ],
+                    [
+                        8,
+                        "    helm.sh/chart: vulntracker-api-0.1.0\n"
+                    ],
+                    [
+                        9,
+                        "    app.kubernetes.io/name: vulntracker-api\n"
+                    ],
+                    [
+                        10,
+                        "    app.kubernetes.io/instance: release-name\n"
+                    ],
+                    [
+                        11,
+                        "    app.kubernetes.io/version: \"1.0.0\"\n"
+                    ],
+                    [
+                        12,
+                        "    app.kubernetes.io/managed-by: Helm\n"
+                    ],
+                    [
+                        13,
+                        "# The API never calls the Kubernetes API \u2014 don't mount a token.\n"
+                    ],
+                    [
+                        14,
+                        "automountServiceAccountToken: false\n"
+                    ]
+                ],
+                "file_path": "/vulntracker-api/templates/serviceaccount.yaml",
+                "file_abs_path": "/tmp/tmp1eyn6_wy/vulntracker-api/templates/serviceaccount.yaml",
+                "repo_file_path": "/vulntracker-api/templates/serviceaccount.yaml",
+                "file_line_range": [
+                    3,
+                    14
+                ],
+                "resource": "ServiceAccount.default.release-name-vulntracker-api",
+                "evaluations": {},
+                "check_class": "checkov.kubernetes.checks.resource.k8s.DefaultNamespace",
+                "fixed_definition": null,
+                "entity_tags": null,
+                "caller_file_path": null,
+                "caller_file_line_range": null,
+                "resource_address": null,
+                "severity": null,
+                "bc_category": null,
+                "benchmarks": null,
+                "description": null,
+                "short_description": null,
+                "vulnerability_details": null,
+                "connected_node": null,
+                "guideline": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/kubernetes-policies/kubernetes-policy-index/bc-k8s-20",
+                "details": [],
+                "check_len": null,
+                "definition_context_file_path": null
+            },
+            {
+                "check_id": "CKV_K8S_21",
+                "bc_check_id": "BC_K8S_20",
+                "check_name": "The default namespace should not be used",
+                "check_result": {
+                    "result": "FAILED",
+                    "evaluated_keys": []
+                },
+                "code_block": [
+                    [
+                        3,
+                        "apiVersion: v1\n"
+                    ],
+                    [
+                        4,
+                        "kind: Service\n"
+                    ],
+                    [
+                        5,
+                        "metadata:\n"
+                    ],
+                    [
+                        6,
+                        "  name: release-name-vulntracker-api\n"
+                    ],
+                    [
+                        7,
+                        "  labels:\n"
+                    ],
+                    [
+                        8,
+                        "    helm.sh/chart: vulntracker-api-0.1.0\n"
+                    ],
+                    [
+                        9,
+                        "    app.kubernetes.io/name: vulntracker-api\n"
+                    ],
+                    [
+                        10,
+                        "    app.kubernetes.io/instance: release-name\n"
+                    ],
+                    [
+                        11,
+                        "    app.kubernetes.io/version: \"1.0.0\"\n"
+                    ],
+                    [
+                        12,
+                        "    app.kubernetes.io/managed-by: Helm\n"
+                    ],
+                    [
+                        13,
+                        "spec:\n"
+                    ],
+                    [
+                        14,
+                        "  type: ClusterIP\n"
+                    ],
+                    [
+                        15,
+                        "  selector:\n"
+                    ],
+                    [
+                        16,
+                        "    app.kubernetes.io/name: vulntracker-api\n"
+                    ],
+                    [
+                        17,
+                        "    app.kubernetes.io/instance: release-name\n"
+                    ],
+                    [
+                        18,
+                        "  ports:\n"
+                    ],
+                    [
+                        19,
+                        "    - name: http\n"
+                    ],
+                    [
+                        20,
+                        "      port: 80\n"
+                    ],
+                    [
+                        21,
+                        "      targetPort: http\n"
+                    ],
+                    [
+                        22,
+                        "      protocol: TCP\n"
+                    ]
+                ],
+                "file_path": "/vulntracker-api/templates/service.yaml",
+                "file_abs_path": "/tmp/tmp1eyn6_wy/vulntracker-api/templates/service.yaml",
+                "repo_file_path": "/vulntracker-api/templates/service.yaml",
+                "file_line_range": [
+                    3,
+                    22
+                ],
+                "resource": "Service.default.release-name-vulntracker-api",
+                "evaluations": {},
+                "check_class": "checkov.kubernetes.checks.resource.k8s.DefaultNamespace",
+                "fixed_definition": null,
+                "entity_tags": null,
+                "caller_file_path": null,
+                "caller_file_line_range": null,
+                "resource_address": null,
+                "severity": null,
+                "bc_category": null,
+                "benchmarks": null,
+                "description": null,
+                "short_description": null,
+                "vulnerability_details": null,
+                "connected_node": null,
+                "guideline": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/kubernetes-policies/kubernetes-policy-index/bc-k8s-20",
+                "details": [],
+                "check_len": null,
+                "definition_context_file_path": null
+            },
+            {
+                "check_id": "CKV_K8S_21",
+                "bc_check_id": "BC_K8S_20",
+                "check_name": "The default namespace should not be used",
+                "check_result": {
+                    "result": "FAILED",
+                    "evaluated_keys": []
+                },
+                "code_block": [
+                    [
+                        3,
+                        "apiVersion: v1\n"
+                    ],
+                    [
+                        4,
+                        "kind: ConfigMap\n"
+                    ],
+                    [
+                        5,
+                        "metadata:\n"
+                    ],
+                    [
+                        6,
+                        "  name: release-name-vulntracker-api-config\n"
+                    ],
+                    [
+                        7,
+                        "  labels:\n"
+                    ],
+                    [
+                        8,
+                        "    helm.sh/chart: vulntracker-api-0.1.0\n"
+                    ],
+                    [
+                        9,
+                        "    app.kubernetes.io/name: vulntracker-api\n"
+                    ],
+                    [
+                        10,
+                        "    app.kubernetes.io/instance: release-name\n"
+                    ],
+                    [
+                        11,
+                        "    app.kubernetes.io/version: \"1.0.0\"\n"
+                    ],
+                    [
+                        12,
+                        "    app.kubernetes.io/managed-by: Helm\n"
+                    ],
+                    [
+                        13,
+                        "data:\n"
+                    ],
+                    [
+                        14,
+                        "  ACCESS_TOKEN_EXPIRE_MINUTES: \"30\"\n"
+                    ],
+                    [
+                        15,
+                        "  DATABASE_URL: \"sqlite:////data/vulntracker.db\"\n"
+                    ],
+                    [
+                        16,
+                        "  NOTIFY_SERVICE_URL: \"http://vulntracker-notify:3001\"\n"
+                    ],
+                    [
+                        17,
+                        "  PUBLIC_BASE_URL: \"https://vulntracker.example.com\"\n"
+                    ]
+                ],
+                "file_path": "/vulntracker-api/templates/configmap.yaml",
+                "file_abs_path": "/tmp/tmp1eyn6_wy/vulntracker-api/templates/configmap.yaml",
+                "repo_file_path": "/vulntracker-api/templates/configmap.yaml",
+                "file_line_range": [
+                    3,
+                    17
+                ],
+                "resource": "ConfigMap.default.release-name-vulntracker-api-config",
+                "evaluations": {},
+                "check_class": "checkov.kubernetes.checks.resource.k8s.DefaultNamespace",
+                "fixed_definition": null,
+                "entity_tags": null,
+                "caller_file_path": null,
+                "caller_file_line_range": null,
+                "resource_address": null,
+                "severity": null,
+                "bc_category": null,
+                "benchmarks": null,
+                "description": null,
+                "short_description": null,
+                "vulnerability_details": null,
+                "connected_node": null,
+                "guideline": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/kubernetes-policies/kubernetes-policy-index/bc-k8s-20",
+                "details": [],
+                "check_len": null,
+                "definition_context_file_path": null
+            }
+        ]
+    },
+    "summary": {
+        "passed": 86,
+        "failed": 7,
+        "skipped": 0,
+        "parsing_errors": 0,
+        "resource_count": 7,
+        "checkov_version": "3.3.16"
+    }
+}
