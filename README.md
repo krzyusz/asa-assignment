@@ -1,5 +1,14 @@
 # VulnTracker assignment
 
+> **📍 Start here:** every step I took for this assignment - and the reasoning,
+> trade-offs and considerations behind each one, including things the scanners
+> did not catch - is written up in
+> [`docs/steps-done.md`](docs/steps-done.md). Read that alongside the diff.
+>
+> Other deliverables: [`docs/findings.md`](docs/findings.md) (prioritised
+> findings), [`docs/remediation-plan.md`](docs/remediation-plan.md) (deferred
+> items), [`docs/executive-summary.md`](docs/executive-summary.md) (CISO summary).
+
 ## Background
 
 **VulnTracker** is a two-service system for managing vulnerability scan results:
