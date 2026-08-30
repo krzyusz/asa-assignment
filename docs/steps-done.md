@@ -138,3 +138,20 @@ SAST 7→3, SCA `requirements.txt` 1 CRITICAL+11 HIGH → 0/0, container 6→5 C
   SQLite volume (`create_all` only creates missing tables, never alters). Fine
   for the prototype (`down -v` to reset); a real deployment needs Alembic before
   any schema change. Added as finding #18.
+
+---
+
+## Step 6 - Executive summary (Task 5)
+
+- Added `docs/executive-summary.md` - CISO-facing, business-risk framing.
+
+## Process note
+
+Each step above was delivered as a single commit covering several distinct
+changes (Step 5 alone bundles seven independent fixes). That kept the take-home
+easy to follow, but it is not how this should run on a team: the SQL-injection
+fix, the auth fix and the dependency bumps are each their own unit of work that
+a second engineer should review and merge on its own. Splitting them keeps the
+blast radius of each change clear and stops a regression in one from holding up
+the rest. In a real engagement these would be separate branches/PRs, ideally
+spread across people.
